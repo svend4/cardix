@@ -1,0 +1,77 @@
+{
+  "format": "karten-katalog",
+  "version": "0.1",
+  "namespace": "sen",
+  "lang": "de-LS",
+  "cards": [
+    {
+      "id": "sen-0001", "n": 1, "status": "draft",
+      "pic": { "emoji": "🛍️", "file": "img/einkaufen.svg", "alt": "Tasche mit Brot, Apfel und Flasche" },
+      "word": "Einkaufen",
+      "text": "Ich brauche Einkäufe.",
+      "tags": ["haushalt", "einkauf"],
+      "flags": [],
+      "io": { "in": [], "out": ["ware"] },
+      "relations": { "next": [], "alt": ["sen-0002"], "excludes": [], "requires": [] },
+      "ext": {}
+    },
+    {
+      "id": "sen-0002", "n": 2, "status": "draft",
+      "pic": { "emoji": "🍲", "file": "img/essen.svg", "alt": "Teller mit warmem Essen" },
+      "word": "Essen",
+      "text": "Bitte bringen Sie mir Essen.",
+      "tags": ["essen", "lieferung"],
+      "flags": [],
+      "io": { "in": [], "out": ["mahlzeit"] },
+      "relations": { "next": [], "alt": ["sen-0001"], "excludes": [], "requires": [] },
+      "ext": {}
+    },
+    {
+      "id": "sen-0003", "n": 3, "status": "draft",
+      "pic": { "emoji": "🧹", "file": "img/putzen.svg", "alt": "Besen und Eimer" },
+      "word": "Putzen",
+      "text": "Ich brauche Hilfe beim Putzen.",
+      "tags": ["haushalt", "reinigung"],
+      "flags": [],
+      "io": { "in": [], "out": ["sauber"] },
+      "relations": { "next": [], "alt": [], "excludes": [], "requires": [] },
+      "ext": {}
+    },
+    {
+      "id": "sen-0004", "n": 4, "status": "draft",
+      "pic": { "emoji": "🚶‍♀️🚶", "file": "img/spazieren.svg", "alt": "Zwei Menschen gehen auf einem Weg" },
+      "word": "Spazieren",
+      "text": "Ich möchte nach draußen gehen.",
+      "tags": ["begleitung", "draussen"],
+      "flags": ["nur mit Begleitung"],
+      "io": { "in": [], "out": ["begleitung"] },
+      "relations": { "next": [], "alt": [], "excludes": [], "requires": [] },
+      "ext": {}
+    },
+    {
+      "id": "sen-0005", "n": 5, "status": "draft",
+      "pic": { "emoji": "✉️", "file": "img/briefe.svg", "alt": "Briefumschlag und Blatt Papier" },
+      "word": "Briefe",
+      "text": "Ich brauche Hilfe mit Briefen.",
+      "tags": ["papiere", "post"],
+      "flags": [],
+      "io": { "in": [], "out": ["erledigt"] },
+      "relations": { "next": [], "alt": [], "excludes": [], "requires": [] },
+      "ext": {}
+    },
+    {
+      "id": "sen-0006", "n": 6, "status": "draft",
+      "pic": { "emoji": "💬", "file": "img/reden.svg", "alt": "Zwei Gesichter mit Sprechblase" },
+      "word": "Reden",
+      "text": "Ich möchte mit jemandem reden.",
+      "tags": ["gespraech", "gesellschaft"],
+      "flags": [],
+      "io": { "in": [], "out": ["gespraech"] },
+      "relations": { "next": [], "alt": [], "excludes": [], "requires": [] },
+      "ext": {}
+    }
+  ],
+  "decks": {
+    "start": ["sen-0001", "sen-0002", "sen-0003", "sen-0004", "sen-0005", "sen-0006"]
+  }
+}

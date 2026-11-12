@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hilfe wählen</title>
+<!-- SPDX-License-Identifier: Apache-2.0 | v0.2: liest katalog-sen.json (Format karten-katalog 0.1) -->
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; background:#fffbe6; color:#000; margin:0; padding:16px; }
+  h1 { font-size:40px; margin:8px 0 16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:16px; }
+  .card { position:relative; background:#fff; border:4px solid #000; border-radius:16px; padding:16px; text-align:center; cursor:pointer; font-size:34px; }
+  .card .pic { font-size:96px; line-height:1.1; }
+  .card .num { position:absolute; top:8px; right:14px; font-size:44px; font-weight:bold; }
+  .card .sub { font-size:22px; margin-top:6px; }
+  .card .flag { font-size:20px; margin-top:8px; background:#ffe1e1; border:2px solid #a00; border-radius:8px; padding:4px; }
+  .card.on { background:#c8f7c5; border-color:#0a6b00; }
+  .card.on::after { content:"✔"; position:absolute; top:8px; left:14px; font-size:44px; color:#0a6b00; }
+  .bar { position:sticky; bottom:0; background:#fffbe6; padding:16px 0; display:flex; gap:12px; flex-wrap:wrap; }
+  button, .load { font-size:30px; padding:16px 24px; border:4px solid #000; border-radius:14px; background:#fff; cursor:pointer; }
+  #send { background:#ffd84d; font-weight:bold; }
+  #result, #msg { font-size:30px; margin-top:16px; background:#fff; border:4px solid #000; border-radius:16px; padding:16px; display:none; }
+  #picker { display:none; margin:16px 0; }
+  #picker input { display:none; }
+</style>
+</head>
+<body>
+<h1>Was brauchen Sie?</h1>
+
+<div id="picker">
+  <label class="load">📂 Katalog öffnen<input type="file" id="file" accept=".json,application/json"></label>
+</div>
+<div id="msg"></div>
+
+<div class="grid" id="grid"></div>
+
+<div class="bar">
+  <button id="send">Fertig</button>
+  <button id="clear">Alles weg</button>
+</div>
+<div id="result"></div>
+
+<script>
+"use strict";
+const CATALOG_FILE = "katalog-sen.json";
+let CARDS = [];
+const chosen = new Set();
+const $ = id => document.getElementById(id);
+
+function speak(t) {
+  if ("speechSynthesis" in window) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "de-DE"; u.rate = 0.85;
+    speechSynthesis.speak(u);
+  }
+}
+
+function showMsg(t) { $("msg").textContent = t; $("msg").style.display = "block"; }
+
+// Prüft den Katalog gegen das Kernformat. Fehler werden angezeigt, nicht verschluckt.
+function validate(k) {
+  const errs = [];
+  if (k.format !== "karten-katalog") errs.push("format ist nicht 'karten-katalog'");
+  const major = String(k.version || "").split(".")[0];
+  if (major !== "0") errs.push("unbekannte Version " + k.version);
+  if (!Array.isArray(k.cards)) { errs.push("cards fehlt"); return errs; }
+  const ids = new Set(), nums = new Set();
+  k.cards.forEach((c, i) => {
+    for (const f of ["id", "n", "status", "word", "text", "pic"]) if (c[f] === undefined) errs.push(`Karte ${i}: ${f} fehlt`);
+    if (ids.has(c.id)) errs.push("doppelte id " + c.id);
+    if (nums.has(c.n)) errs.push("doppelte Nummer " + c.n);
+    ids.add(c.id); nums.add(c.n);
+  });
+  return errs;
+}
+
+function load(k) {
+  const errs = validate(k);
+  if (errs.length) { showMsg("Katalog fehlerhaft: " + errs.join("; ")); return; }
+  const deck = (k.decks && k.decks.start) ? k.decks.start : k.cards.map(c => c.id);
+  const byId = Object.fromEntries(k.cards.map(c => [c.id, c]));
+  // retired-Karten werden nie angeboten; draft und active schon.
+  CARDS = deck.map(id => byId[id]).filter(c => c && c.status !== "retired");
+  $("picker").style.display = "none";
+  $("msg").style.display = "none";
+  render();
+}
+
+function render() {
+  const grid = $("grid");
+  grid.innerHTML = "";
+  chosen.clear();
+  CARDS.forEach(c => {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("aria-label", c.n + ": " + c.text);
+    const pic = (c.pic && c.pic.emoji) ? c.pic.emoji : "❓";
+    const flags = (c.flags || []).map(f => `<div class="flag">⚠️ ${f}</div>`).join("");
+    el.innerHTML = `<div class="num">${c.n}</div><div class="pic" aria-hidden="true">${pic}</div>` +
+                   `<div>${c.word}</div><div class="sub">${c.text}</div>${flags}`;
+    const toggle = () => {
+      if (chosen.has(c.id)) { chosen.delete(c.id); el.classList.remove("on"); speak(c.word + " weg."); }
+      else { chosen.add(c.id); el.classList.add("on"); speak(c.text); }
+      $("result").style.display = "none";
+    };
+    el.addEventListener("click", toggle);
+    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    grid.appendChild(el);
+  });
+}
+
+$("send").addEventListener("click", () => {
+  const r = $("result");
+  if (chosen.size === 0) {
+    r.textContent = "Sie haben noch nichts gewählt.";
+    speak("Sie haben noch nichts gewählt.");
+  } else {
+    const list = CARDS.filter(c => chosen.has(c.id));
+    r.innerHTML = "<b>Sie haben gewählt:</b><br>" +
+      list.map(c => (c.pic.emoji || "") + " " + c.n + " – " + c.word).join("<br>") +
+      "<br><br>Nummern: <b>" + list.map(c => c.n).join(", ") + "</b>" +
+      "<br><small>Codes: " + list.map(c => c.id).join(", ") + "</small>";
+    speak("Sie haben gewählt: " + list.map(c => c.word).join(", ") + ".");
+  }
+  r.style.display = "block";
+});
+
+$("clear").addEventListener("click", () => {
+  chosen.clear();
+  document.querySelectorAll(".card").forEach(e => e.classList.remove("on"));
+  $("result").style.display = "none";
+  speak("Alles weg.");
+});
+
+// Datei-Auswahl als Offline-Weg (file:// erlaubt oft kein fetch)
+$("file").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try { load(JSON.parse(rd.result)); }
+    catch (err) { showMsg("Datei ist kein gültiges JSON."); }
+  };
+  rd.readAsText(f, "utf-8");
+});
+
+// 1. Versuch: Katalog neben der Seite laden. 2. Weg: Datei auswählen.
+fetch(CATALOG_FILE)
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(load)
+  .catch(() => {
+    $("picker").style.display = "block";
+    showMsg("Bitte die Datei " + CATALOG_FILE + " öffnen.");
+  });
+</script>
+</body>
+</html>
